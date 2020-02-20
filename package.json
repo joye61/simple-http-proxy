@@ -1,0 +1,19 @@
+{
+  "name": "simple-http-proxy",
+  "version": "1.0.0",
+  "description": "simple http proxy for develop",
+  "main": "./index.js",
+  "author": "joye",
+  "license": "MIT",
+  "scripts": {
+    "start": "nodemon -i ./node_modules ./index.js"
+  },
+  "dependencies": {
+    "@types/commander": "^2.12.2",
+    "chalk": "^3.0.0",
+    "commander": "^4.1.1",
+    "http-proxy": "^1.18.0",
+    "lodash": "^4.17.15",
+    "nodemon": "^2.0.2"
+  }
+}
