@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -47,17 +58,16 @@ var Target_1 = __importDefault(require("./Target"));
 var rewrite_1 = require("./rewrite");
 function startProxy(option) {
     var _this = this;
-    if (option === void 0) { option = {
-        port: 4000,
-        proxyParam: "__proxy"
-    }; }
-    var port = option.port, proxyParam = option.proxyParam;
+    var config = { port: 4000, proxyParam: "__proxy" };
+    if (option) {
+        config = __assign(__assign({}, config), option);
+    }
     var app = new koa_1.default();
-    app.context.proxyParam = proxyParam;
+    app.context.proxyParam = config.proxyParam;
     app.on("error", function (error, ctx) {
-        console.error("\u274C \u53D1\u751F\u9519\u8BEF \u274C\uFF1A\n  \u8BF7\u6C42\u94FE\u63A5\uFF1A" + chalk_1.default.cyan(ctx.href) + "\n  \u9519\u8BEF\u4FE1\u606F\uFF1A" + error.message + "\n");
+        console.error(chalk_1.default.red("发生错误：") + "\n  \u8BF7\u6C42\u94FE\u63A5\uFF1A" + chalk_1.default.cyan(ctx.href) + "\n  \u9519\u8BEF\u4FE1\u606F\uFF1A" + error.message + "\n");
         console.log(error);
-        console.log(chalk.gray("========================================\n"));
+        console.log(chalk_1.default.gray("========================================\n"));
         ctx.code = 500;
         ctx.body = "";
     });
@@ -67,7 +77,7 @@ function startProxy(option) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    console.log(chalk.gray("\n========================================"));
+                    console.log(chalk_1.default.gray("\n========================================"));
                     target = new Target_1.default(ctx);
                     requestBody = ctx.request.body
                         ? "<空>"
@@ -79,12 +89,13 @@ function startProxy(option) {
                     console.log("\n>>> \u63A5\u6536\u5230\u76EE\u6807\u54CD\u5E94\uFF1A" + chalk_1.default.gray(response.status + " " + response.statusText) + "\n");
                     rewrite_1.setResponseHeader(ctx, response.headers);
                     rewrite_1.setCors(ctx);
-                    console.log(chalk.gray("========================================\n"));
+                    console.log(chalk_1.default.gray("========================================\n"));
                     ctx.body = response.data;
                     return [2];
             }
         });
     }); });
-    app.listen(port);
+    console.log("\n\u4EE3\u7406\u670D\u52A1\u5668\u5DF2\u7ECF\u542F\u52A8 " + chalk_1.default.green(":" + config.port) + "\n");
+    app.listen(config.port);
 }
 exports.startProxy = startProxy;

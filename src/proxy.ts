@@ -17,26 +17,23 @@ export interface ProxyOption {
   proxyParam: string;
 }
 
-export function startProxy(
-  option: Partial<ProxyOption> = {
-    port: 4000,
-    proxyParam: "__proxy"
+export function startProxy(option?: Partial<ProxyOption>) {
+  let config = { port: 4000, proxyParam: "__proxy" };
+  if (option) {
+    config = { ...config, ...option };
   }
-) {
-  const { port, proxyParam } = option;
 
   const app = new Koa();
-  app.context.proxyParam = proxyParam;
+  app.context.proxyParam = config.proxyParam;
 
   app.on("error", (error, ctx) => {
-
-    console.error(`❌ 发生错误 ❌：
+    console.error(`${color.red("发生错误：")}
   请求链接：${color.cyan(ctx.href)}
   错误信息：${error.message}
 `);
     console.log(error);
 
-    console.log(chalk.gray(`========================================\n`));
+    console.log(color.gray(`========================================\n`));
     ctx.code = 500;
     ctx.body = "";
   });
@@ -44,7 +41,7 @@ export function startProxy(
   app.use(bodyParser());
 
   app.use(async ctx => {
-    console.log(chalk.gray(`\n========================================`));
+    console.log(color.gray(`\n========================================`));
     // 解析代理目标信息
     const target = new Target(ctx);
 
@@ -69,11 +66,12 @@ export function startProxy(
     setResponseHeader(ctx, response.headers);
     setCors(ctx);
 
-    console.log(chalk.gray(`========================================\n`));
+    console.log(color.gray(`========================================\n`));
 
     // 数据目标结果到客户端
     ctx.body = response.data;
   });
 
-  app.listen(port);
+  console.log(`\n代理服务器已经启动 ${color.green(`:${config.port}`)}\n`);
+  app.listen(config.port);
 }
