@@ -6,13 +6,20 @@
   "author": "joye",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon -i ./node_modules ./index.js"
+    "start": "nodemon -w ./ -i ./node_modules ./index.js"
+  },
+  "bin": {
+    "clproxy": "./bin/index.js"
   },
   "dependencies": {
+    "axios": "^0.19.2",
     "chalk": "^3.0.0",
     "commander": "^4.1.1",
     "http-proxy": "^1.18.0",
+    "koa": "^2.11.0",
+    "koa-body": "^4.1.1",
     "lodash": "^4.17.15",
-    "nodemon": "^2.0.2"
+    "nodemon": "^2.0.2",
+    "tough-cookie": "^3.0.1"
   }
 }
