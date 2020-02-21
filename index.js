@@ -16,18 +16,22 @@ const chalk = require("chalk");
 const bodyParser = require("koa-body");
 const { URL } = require("url");
 const request = require("axios");
-const { Cookie } = require("tough-cookie");
 
 const app = new Koa();
 
-app.on("error", error => {
+app.on("error", (error, ctx) => {
   console.error("错误：", chalk.red(error.message));
+  ctx.code = 500;
+  ctx.body = "";
 });
 
 app.use(bodyParser());
 
-app.use(async ctx => {
+app.use(async (ctx, next)=>{
   console.log(chalk.gray(`\n========================================`));
+})
+
+app.use(async ctx => {
 
   const proxyKey = "__proxy";
   const clientOrigin = ctx.get("Origin");

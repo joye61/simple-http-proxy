@@ -6,20 +6,24 @@
   "author": "joye",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon -w ./ -i ./node_modules ./index.js"
+    "dev": "nodemon -w ./dist -i ./node_modules ./dist/index.js"
   },
   "bin": {
-    "clproxy": "./bin/index.js"
+    "clproxy": "./dist/bin.js"
   },
   "dependencies": {
+    "@types/commander": "^2.12.2",
+    "@types/koa": "^2.11.1",
+    "@types/lodash": "^4.14.149",
+    "@types/tough-cookie": "^2.3.6",
     "axios": "^0.19.2",
     "chalk": "^3.0.0",
     "commander": "^4.1.1",
-    "http-proxy": "^1.18.0",
     "koa": "^2.11.0",
     "koa-body": "^4.1.1",
     "lodash": "^4.17.15",
     "nodemon": "^2.0.2",
-    "tough-cookie": "^3.0.1"
+    "tough-cookie": "^3.0.1",
+    "typescript": "^3.8.2"
   }
 }
