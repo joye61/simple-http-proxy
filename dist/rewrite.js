@@ -69,3 +69,7 @@ function setResponseHeader(ctx, targetResponseHeaders) {
     }
 }
 exports.setResponseHeader = setResponseHeader;
+function setResponseContentLength(ctx, body) {
+    ctx.set("Content-Length", `${body.length}`);
+}
+exports.setResponseContentLength = setResponseContentLength;

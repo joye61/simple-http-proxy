@@ -13,7 +13,8 @@ import {
   setResponseHeader,
   setCors,
   setPreflightCors,
-  rewriteResponseCookies
+  rewriteResponseCookies,
+  setResponseContentLength
 } from "./rewrite";
 
 export interface ProxyOption {
@@ -61,21 +62,26 @@ export function startProxy(option?: Partial<ProxyOption>) {
   });
 
   app.use(async ctx => {
+
     // 解析代理目标信息
     const target = new Target(ctx);
     // 代理原始目标请求
     const response = await target.requestTarget();
+    const body = Buffer.from(response.data);
+
     // 设置返回给客户端的Set-Cookie响应头
     rewriteResponseCookies(ctx, response.headers);
     // 将目标的响应头完整反馈给客户端
     setResponseHeader(ctx, response.headers);
     // 设置跨域相关
     setCors(ctx);
+    // 代理的存在导致服务器返回和真实返回数据不一致
+    setResponseContentLength(ctx, body);
 
     // 数据目标结果到客户端
     ctx.status = response.status;
     ctx.message = response.statusText;
-    ctx.body = response.data;
+    ctx.body = body;
   });
 
   app.listen(config.port);

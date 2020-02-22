@@ -43,12 +43,14 @@ function startProxy(option) {
     app.use((ctx) => __awaiter(this, void 0, void 0, function* () {
         const target = new Target_1.default(ctx);
         const response = yield target.requestTarget();
+        const body = Buffer.from(response.data);
         rewrite_1.rewriteResponseCookies(ctx, response.headers);
         rewrite_1.setResponseHeader(ctx, response.headers);
         rewrite_1.setCors(ctx);
+        rewrite_1.setResponseContentLength(ctx, body);
         ctx.status = response.status;
         ctx.message = response.statusText;
-        ctx.body = response.data;
+        ctx.body = body;
     }));
     app.listen(config.port);
     console.log(`代理服务器已经启动：${chalk_1.default.green(`:${config.port}`)}`);

@@ -109,3 +109,7 @@ export function setResponseHeader(
     ctx.set(key, targetResponseHeaders[key]!);
   }
 }
+
+export function setResponseContentLength(ctx: KoaContext, body: Buffer) {
+  ctx.set("Content-Length", `${body.length}`);
+}
