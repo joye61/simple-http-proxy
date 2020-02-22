@@ -1,7 +1,6 @@
 import http from "http";
 import https from "https";
 import { KoaContext } from "./types";
-import { URL } from "url";
 import request, { Method } from "axios";
 
 export default class Target {
@@ -70,11 +69,11 @@ export default class Target {
       headers: this.headers,
       data: this.ctx.req,
       responseType: "stream",
+      validateStatus: () => true,
       httpsAgent: new https.Agent({
         rejectUnauthorized: false
       })
     });
-
     return response;
   }
 }

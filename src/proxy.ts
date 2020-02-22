@@ -7,16 +7,24 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 import Koa from "koa";
-import bodyParser from "koa-body";
 import color from "chalk";
 import Target from "./Target";
-import { setResponseHeader, setCors } from "./rewrite";
+import {
+  setResponseHeader,
+  setCors,
+  setPreflightCors,
+  rewriteResponseCookies
+} from "./rewrite";
 
 export interface ProxyOption {
   port: number;
   proxyParam: string;
 }
 
+/**
+ * 启动代理服务器
+ * @param option
+ */
 export function startProxy(option?: Partial<ProxyOption>) {
   let config = { port: 4000, proxyParam: "__proxy" };
   if (option) {
@@ -26,52 +34,51 @@ export function startProxy(option?: Partial<ProxyOption>) {
   const app = new Koa();
   app.context.proxyParam = config.proxyParam;
 
+  /**
+   * 监听错误信息
+   */
   app.on("error", (error, ctx) => {
-    console.error(`${color.red("发生错误：")}
-  请求链接：${color.cyan(ctx.href)}
-  错误信息：${error.message}
-`);
-    console.log(error);
-
-    console.log(color.gray(`========================================\n`));
-    ctx.code = 500;
-    ctx.body = "";
+    setCors(ctx);
+    ctx.status = 500;
+    ctx.message = error.message;
+    ctx.body = null;
   });
 
-  app.use(bodyParser());
+  /**
+   *
+   */
+  app.use(async (ctx, next) => {
+    // 如果请求是预检请求，直接返回
+    if (ctx.method.toUpperCase() === "OPTIONS") {
+      setPreflightCors(ctx);
+      ctx.status = 200;
+      ctx.body = null;
+    }
+    // 非预检请求需要在下一个中间件处理
+    else {
+      await next();
+    }
+  });
 
   app.use(async ctx => {
-    console.log(color.gray(`\n========================================`));
     // 解析代理目标信息
     const target = new Target(ctx);
-
-    const requestBody = ctx.request.body
-      ? "<空>"
-      : JSON.stringify(ctx.request.body, null, 2);
-
-    console.log(`
->>> 接收到代理请求：
-  
-  请求方法 ：${color.gray(ctx.method)}
-  请求链接 ：${color.cyan(target.url!.href)}
-  请求主体 ：${requestBody}
-`);
-
+    // 代理原始目标请求
     const response = await target.requestTarget();
-
-    console.log(`
->>> 接收到目标响应：${color.gray(`${response.status} ${response.statusText}`)}
-`);
-
+    // 设置返回给客户端的Set-Cookie响应头
+    rewriteResponseCookies(ctx, response.headers);
+    // 将目标的响应头完整反馈给客户端
     setResponseHeader(ctx, response.headers);
+    // 设置跨域相关
     setCors(ctx);
 
-    console.log(color.gray(`========================================\n`));
-
     // 数据目标结果到客户端
+    ctx.status = response.status;
+    ctx.message = response.statusText;
     ctx.body = response.data;
   });
 
-  console.log(`\n代理服务器已经启动 ${color.green(`:${config.port}`)}\n`);
   app.listen(config.port);
+
+  console.log(`代理服务器已经启动：${color.green(`:${config.port}`)}`);
 }

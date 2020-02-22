@@ -1,67 +1,71 @@
 "use strict";
-var __values = (this && this.__values) || function(o) {
-    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-    if (m) return m.call(o);
-    if (o && typeof o.length === "number") return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
-    };
-    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-var url_1 = require("url");
-var tough_cookie_1 = require("tough-cookie");
-function setCors(ctx) {
-    var e_1, _a;
-    ctx.set("access-control-allow-origin", ctx.get("origin"));
-    ctx.set("access-control-allow-methods", "GET, POST, PUT, HEAD, DELETE, OPTIONS");
-    ctx.set("access-control-allow-headers", "Authorization, Content-Type");
-    try {
-        for (var _b = __values(["cookie", "authorization"]), _c = _b.next(); !_c.done; _c = _b.next()) {
-            var field = _c.value;
-            if (ctx.get(field)) {
-                ctx.set("access-control-allow-credentials", "true");
-                break;
-            }
-        }
+const tough_cookie_1 = require("tough-cookie");
+const lodash_1 = require("lodash");
+function setPreflightCors(ctx) {
+    const origin = ctx.get("Origin");
+    if (origin) {
+        ctx.set("Access-Control-Allow-Origin", origin);
     }
-    catch (e_1_1) { e_1 = { error: e_1_1 }; }
-    finally {
-        try {
-            if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
+    const method = ctx.get("Access-Control-Request-Method");
+    if (method) {
+        ctx.set("Access-Control-Allow-Methods", method);
+    }
+    const headers = ctx.get("Access-Control-Request-Headers");
+    if (headers) {
+        ctx.set("Access-Control-Allow-Headers", headers);
+    }
+    ctx.set("Access-Control-Allow-Credentials", "true");
+}
+exports.setPreflightCors = setPreflightCors;
+function setCors(ctx) {
+    ctx.set("Access-Control-Allow-Origin", ctx.get("Origin"));
+    ctx.set("Access-Control-Allow-Methods", ctx.method.toUpperCase());
+    const headers = ctx.get("Access-Control-Request-Headers");
+    if (headers) {
+        ctx.set("Access-Control-Allow-Headers", headers);
+    }
+    for (let field of ["cookie", "authorization"]) {
+        if (typeof ctx.headers[field] !== undefined) {
+            ctx.set("Access-Control-Allow-Credentials", "true");
+            break;
         }
-        finally { if (e_1) throw e_1.error; }
     }
 }
 exports.setCors = setCors;
-function setResponseHeader(ctx, targetResHeaders) {
-    var cookies = [];
-    var rawSetCookie = targetResHeaders["set-cookie"];
+function rewriteResponseCookies(ctx, targetResponseHeaders) {
+    const cookies = [];
+    const rawSetCookie = targetResponseHeaders["set-cookie"];
+    const pushParseResult = (result) => result instanceof tough_cookie_1.Cookie && cookies.push(result);
     if (Array.isArray(rawSetCookie)) {
-        rawSetCookie.forEach(function (item) {
-            var result = tough_cookie_1.Cookie.parse(item);
-            if (result instanceof tough_cookie_1.Cookie) {
-                cookies.push(result);
-            }
+        rawSetCookie.forEach(item => {
+            const result = tough_cookie_1.Cookie.parse(item);
+            pushParseResult(result);
         });
     }
     else if (typeof rawSetCookie === "string") {
-        var result = tough_cookie_1.Cookie.parse(rawSetCookie);
-        if (result instanceof tough_cookie_1.Cookie) {
-            cookies.push(result);
-        }
+        const result = tough_cookie_1.Cookie.parse(rawSetCookie);
+        pushParseResult(result);
     }
-    delete targetResHeaders["set-cookie"];
-    var clientOrigin = ctx.get("Origin");
-    var domain = new url_1.URL(clientOrigin).hostname;
-    cookies.forEach(function (cookie) {
-        cookie.domain = domain;
-        ctx.cookies.set(cookie.key, cookie.value, cookies);
+    if (cookies.length === 0) {
+        return;
+    }
+    cookies.forEach(cookie => {
+        const option = {
+            maxAge: lodash_1.isNumber(cookie.maxAge) ? cookie.maxAge : undefined,
+            expires: lodash_1.isDate(cookie.expires) ? cookie.expires : undefined,
+            path: lodash_1.isString(cookie.path) ? cookie.path : undefined,
+            domain: ctx.hostname,
+            secure: cookie.secure,
+            httpOnly: cookie.httpOnly
+        };
+        ctx.cookies.set(cookie.key, cookie.value, option);
     });
-    for (var key in targetResHeaders) {
-        ctx.set(key, targetResHeaders[key]);
+}
+exports.rewriteResponseCookies = rewriteResponseCookies;
+function setResponseHeader(ctx, targetResponseHeaders) {
+    for (let key in targetResponseHeaders) {
+        ctx.set(key, targetResponseHeaders[key]);
     }
 }
 exports.setResponseHeader = setResponseHeader;

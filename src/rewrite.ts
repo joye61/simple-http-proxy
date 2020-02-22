@@ -1,74 +1,111 @@
 import http from "http";
-import { URL } from "url";
 import { Cookie } from "tough-cookie";
 import { KoaContext } from "./types";
 import Cookies from "cookies";
+import { pick, isDate, isNumber, isString } from "lodash";
+
+/**
+ * 预检请求的跨域资源共享单独处理
+ * @param ctx
+ */
+export function setPreflightCors(ctx: KoaContext) {
+  const origin = ctx.get("Origin");
+  if (origin) {
+    ctx.set("Access-Control-Allow-Origin", origin);
+  }
+  const method = ctx.get("Access-Control-Request-Method");
+  if (method) {
+    ctx.set("Access-Control-Allow-Methods", method);
+  }
+  const headers = ctx.get("Access-Control-Request-Headers");
+  if (headers) {
+    ctx.set("Access-Control-Allow-Headers", headers);
+  }
+  ctx.set("Access-Control-Allow-Credentials", "true");
+}
 
 /**
  * 通用跨域许可设置
  * @param {*} ctx
  */
 export function setCors(ctx: KoaContext) {
-  // 解决跨域相关问题
-  ctx.set("access-control-allow-origin", ctx.get("origin"));
-  ctx.set(
-    "access-control-allow-methods",
-    `GET, POST, PUT, HEAD, DELETE, OPTIONS`
-  );
-  ctx.set("access-control-allow-headers", "Authorization, Content-Type");
+  // 必备跨域头
+  ctx.set("Access-Control-Allow-Origin", ctx.get("Origin"));
+  ctx.set("Access-Control-Allow-Methods", ctx.method.toUpperCase());
 
-  /**
-   * 请求头中包含任意一个字段，都要设置跨域安全许可
-   */
+  // 只要请求头中包含Access-Control-Request-Headers，就必须要返回对应的许可
+  const headers = ctx.get("Access-Control-Request-Headers");
+  if (headers) {
+    ctx.set("Access-Control-Allow-Headers", headers);
+  }
+
+  // ctx.get(key)即使是key不存在，也会返回空字符串，这和undefined不一样
   for (let field of ["cookie", "authorization"]) {
-    if (ctx.get(field)) {
-      ctx.set("access-control-allow-credentials", "true");
+    if (typeof ctx.headers[field] !== undefined) {
+      ctx.set("Access-Control-Allow-Credentials", "true");
       break;
     }
   }
 }
 
 /**
- * 从目标返回给代理的响应头信息更改
- * @param {*} ctx
- * @param {*} targetResHeaders
+ * 重写响应的Set-Cookie标头，主要是重写domain
+ * @param ctx
+ * @param targetResponseHeaders
  */
-export function setResponseHeader(
+export function rewriteResponseCookies(
   ctx: KoaContext,
-  targetResHeaders: http.IncomingHttpHeaders
+  targetResponseHeaders: http.IncomingHttpHeaders
 ) {
   /**
    * 读取服务端响应的Set-Cookie头
    */
-  let cookies: Cookie[] = [];
-  const rawSetCookie = targetResHeaders["set-cookie"];
+  const cookies: Cookie[] = [];
+  const rawSetCookie = targetResponseHeaders["set-cookie"];
+  const pushParseResult = (result?: Cookie) =>
+    result instanceof Cookie && cookies.push(result);
+
+  // 解析目标响应的Set-Cookie值到数组中
   if (Array.isArray(rawSetCookie)) {
     rawSetCookie.forEach(item => {
       const result = Cookie.parse(item);
-      if (result instanceof Cookie) {
-        cookies.push(result);
-      }
+      pushParseResult(result);
     });
   } else if (typeof rawSetCookie === "string") {
     const result = Cookie.parse(rawSetCookie);
-    if (result instanceof Cookie) {
-      cookies.push(result);
-    }
+    pushParseResult(result);
   }
 
-  // 删除原始响应头的set-cookie字段，防止被重复写入
-  delete targetResHeaders["set-cookie"];
+  if (cookies.length === 0) {
+    return;
+  }
 
   // 修改Set-Cookie的域信息
-  const clientOrigin = ctx.get("Origin");
-  const domain = new URL(clientOrigin).hostname;
   cookies.forEach(cookie => {
-    cookie.domain = domain;
-    ctx.cookies.set(cookie.key, cookie.value, <Cookies.SetOption>cookies);
+    // tough-cookie和cookies两个库的参数转换
+    const option: Cookies.SetOption = {
+      maxAge: isNumber(cookie.maxAge) ? cookie.maxAge : undefined,
+      expires: isDate(cookie.expires) ? cookie.expires : undefined,
+      path: isString(cookie.path) ? cookie.path : undefined,
+      domain: ctx.hostname,
+      secure: cookie.secure,
+      httpOnly: cookie.httpOnly
+    };
+    ctx.cookies.set(cookie.key, cookie.value, option);
   });
+}
 
+/**
+ * 从目标返回给代理的响应头信息更改
+ * @param {*} ctx
+ * @param {*} targetResponseHeaders
+ */
+export function setResponseHeader(
+  ctx: KoaContext,
+  targetResponseHeaders: http.IncomingHttpHeaders
+) {
   // 将目标返回的请求头全部原封不动返回给客户端
-  for (let key in targetResHeaders) {
-    ctx.set(key, targetResHeaders[key]!);
+  for (let key in targetResponseHeaders) {
+    ctx.set(key, targetResponseHeaders[key]!);
   }
 }
