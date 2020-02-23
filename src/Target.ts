@@ -68,13 +68,13 @@ export default class Target {
       method: <Method>this.ctx.method,
       headers: this.headers,
       data: this.ctx.req,
-      responseType: "arraybuffer",
+      responseType: "stream",
       validateStatus: () => true,
       httpsAgent: new https.Agent({
         rejectUnauthorized: false
       })
     });
-    
+
     return response;
   }
 }

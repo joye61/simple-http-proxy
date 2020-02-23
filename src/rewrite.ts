@@ -106,10 +106,8 @@ export function setResponseHeader(
 ) {
   // 将目标返回的请求头全部原封不动返回给客户端
   for (let key in targetResponseHeaders) {
-    ctx.set(key, targetResponseHeaders[key]!);
+    if (key !== "content-length") {
+      ctx.set(key, targetResponseHeaders[key]!);
+    }
   }
-}
-
-export function setResponseContentLength(ctx: KoaContext, body: Buffer) {
-  ctx.set("Content-Length", `${body.length}`);
 }

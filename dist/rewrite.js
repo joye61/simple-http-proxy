@@ -65,11 +65,9 @@ function rewriteResponseCookies(ctx, targetResponseHeaders) {
 exports.rewriteResponseCookies = rewriteResponseCookies;
 function setResponseHeader(ctx, targetResponseHeaders) {
     for (let key in targetResponseHeaders) {
-        ctx.set(key, targetResponseHeaders[key]);
+        if (key !== "content-length") {
+            ctx.set(key, targetResponseHeaders[key]);
+        }
     }
 }
 exports.setResponseHeader = setResponseHeader;
-function setResponseContentLength(ctx, body) {
-    ctx.set("Content-Length", `${body.length}`);
-}
-exports.setResponseContentLength = setResponseContentLength;

@@ -59,7 +59,7 @@ class Target {
                 method: this.ctx.method,
                 headers: this.headers,
                 data: this.ctx.req,
-                responseType: "arraybuffer",
+                responseType: "stream",
                 validateStatus: () => true,
                 httpsAgent: new https_1.default.Agent({
                     rejectUnauthorized: false
