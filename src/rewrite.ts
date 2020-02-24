@@ -102,12 +102,15 @@ export function rewriteResponseCookies(
  */
 export function setResponseHeader(
   ctx: KoaContext,
-  targetResponseHeaders: http.IncomingHttpHeaders
+  targetResponseHeaders: http.IncomingHttpHeaders,
+  body: Buffer
 ) {
   // 将目标返回的请求头全部原封不动返回给客户端
   for (let key in targetResponseHeaders) {
     if (key !== "content-length") {
       ctx.set(key, targetResponseHeaders[key]!);
+    } else {
+      ctx.set('Content-Length', `${body.length}`);
     }
   }
 }

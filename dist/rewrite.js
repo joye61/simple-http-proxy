@@ -63,10 +63,13 @@ function rewriteResponseCookies(ctx, targetResponseHeaders) {
     });
 }
 exports.rewriteResponseCookies = rewriteResponseCookies;
-function setResponseHeader(ctx, targetResponseHeaders) {
+function setResponseHeader(ctx, targetResponseHeaders, body) {
     for (let key in targetResponseHeaders) {
         if (key !== "content-length") {
             ctx.set(key, targetResponseHeaders[key]);
+        }
+        else {
+            ctx.set('Content-Length', `${body.length}`);
         }
     }
 }

@@ -65,20 +65,19 @@ export function startProxy(option?: Partial<ProxyOption>) {
     const target = new Target(ctx);
     // 代理原始目标请求
     const response = await target.requestTarget();
-    // const body = Buffer.from(response.data);
+    const body = Buffer.from(response.data);
 
     // 设置返回给客户端的Set-Cookie响应头
     rewriteResponseCookies(ctx, response.headers);
     // 将目标的响应头完整反馈给客户端
-    setResponseHeader(ctx, response.headers);
+    setResponseHeader(ctx, response.headers, body);
     // 设置跨域相关
     setCors(ctx);
 
     // 数据目标结果到客户端
     ctx.status = response.status;
     ctx.message = response.statusText;
-    // ctx.body = body;
-    ctx.body = response.data;
+    ctx.body = body;
   });
 
   app.listen(config.port);
