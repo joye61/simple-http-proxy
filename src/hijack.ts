@@ -1,7 +1,12 @@
 /**
- * 浏览器专用注入方法，配合当前代理使用
- * process.env.NODE_ENV 的值必须借助webpack的DefinePlugin替换
- * create-react-app默认有这两个值
+ * 配合simple-http-proxy使用
+ */
+
+/**
+ *
+ * @param targetUrl
+ * @param proxyParam
+ * @param proxyOrigin
  */
 export function hijack(
   targetUrl: string,
@@ -9,12 +14,9 @@ export function hijack(
   proxyOrigin: string = "http://localhost:4000"
 ) {
   try {
-    const target = new URL(targetUrl);
     const proxy = new URL(proxyOrigin);
-    target.searchParams.set(proxyParam, targetUrl);
-    target.protocol = proxy.protocol;
-    target.host = proxy.host;
-    return target.href;
+    proxy.searchParams.set(proxyParam, targetUrl);
+    return proxy.href;
   } catch (error) {}
 
   return targetUrl;
@@ -29,12 +31,12 @@ export function hijackGlobally(
   window.XMLHttpRequest.prototype.open = function(
     method: string,
     url: string,
-    async = true,
-    user = null,
-    password = null
+    async: boolean = true,
+    username?: string | null,
+    password?: string | null
   ) {
     const proxyUrl = hijack(url, proxyParam, proxyOrigin);
-    rawSend.call(this, method, proxyUrl, async, user, password);
+    rawSend.call(this, method, proxyUrl, async, username, password);
   };
 
   // 拦截window.fetch
