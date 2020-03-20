@@ -2,12 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 function hijack(targetUrl, proxyParam = "__proxy", proxyOrigin = "http://localhost:4000") {
     try {
-        const target = new URL(targetUrl);
         const proxy = new URL(proxyOrigin);
-        target.searchParams.set(proxyParam, targetUrl);
-        target.protocol = proxy.protocol;
-        target.host = proxy.host;
-        return target.href;
+        proxy.searchParams.set(proxyParam, targetUrl);
+        return proxy.href;
     }
     catch (error) { }
     return targetUrl;
@@ -15,9 +12,9 @@ function hijack(targetUrl, proxyParam = "__proxy", proxyOrigin = "http://localho
 exports.hijack = hijack;
 function hijackGlobally(proxyParam = "__proxy", proxyOrigin = "http://localhost:4000") {
     const rawSend = window.XMLHttpRequest.prototype.open;
-    window.XMLHttpRequest.prototype.open = function (method, url, async = true, user = null, password = null) {
+    window.XMLHttpRequest.prototype.open = function (method, url, async = true, username, password) {
         const proxyUrl = hijack(url, proxyParam, proxyOrigin);
-        rawSend.call(this, method, proxyUrl, async, user, password);
+        rawSend.call(this, method, proxyUrl, async, username, password);
     };
     if (typeof window.fetch === "function") {
         const rawFetch = window.fetch;
